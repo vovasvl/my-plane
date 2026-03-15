@@ -48,6 +48,7 @@ from .module import (
 )
 
 from .member import ProjectMemberListCreateAPIEndpoint, ProjectMemberDetailAPIEndpoint, WorkspaceMemberAPIEndpoint
+from .page import PageListAPIEndpoint, PageDetailAPIEndpoint
 
 from .intake import (
     IntakeIssueListCreateAPIEndpoint,
