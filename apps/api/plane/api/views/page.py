@@ -10,9 +10,9 @@ from rest_framework import status
 from rest_framework.response import Response
 
 # Module imports
-from plane.api.serializers import PageAPISerializer
-from plane.app.permissions import ProjectLitePermission
-from plane.db.models import Page, ProjectMember, ProjectPage
+from plane.api.serializers import PageAPISerializer, PageAPICreateSerializer
+from plane.app.permissions import ProjectLitePermission, ProjectEntityPermission
+from plane.db.models import Page
 from .base import BaseAPIView
 
 
@@ -21,7 +21,7 @@ class PageListAPIEndpoint(BaseAPIView):
     Provides a list of all pages in a project accessible to the authenticated user.
     """
 
-    permission_classes = [ProjectLitePermission]
+    permission_classes = [ProjectEntityPermission]
     use_read_replica = True
 
     def get_queryset(self):
@@ -61,6 +61,48 @@ class PageListAPIEndpoint(BaseAPIView):
             on_results=lambda pages: PageAPISerializer(pages, many=True).data,
             default_per_page=100,
         )
+
+    def post(self, request, slug, project_id):
+        """Create a page in a project."""
+        serializer = PageAPICreateSerializer(
+            data=request.data,
+            context={
+                "project_id": project_id,
+                "owned_by_id": request.user.id,
+            },
+        )
+
+        if serializer.is_valid():
+            if (
+                request.data.get("external_id")
+                and request.data.get("external_source")
+                and Page.objects.filter(
+                    project_pages__project_id=project_id,
+                    workspace__slug=slug,
+                    external_source=request.data.get("external_source"),
+                    external_id=request.data.get("external_id"),
+                    project_pages__deleted_at__isnull=True,
+                ).exists()
+            ):
+                page = Page.objects.filter(
+                    workspace__slug=slug,
+                    project_pages__project_id=project_id,
+                    external_source=request.data.get("external_source"),
+                    external_id=request.data.get("external_id"),
+                    project_pages__deleted_at__isnull=True,
+                ).first()
+                return Response(
+                    {
+                        "error": "Page with the same external id and external source already exists",
+                        "id": str(page.id),
+                    },
+                    status=status.HTTP_409_CONFLICT,
+                )
+
+            serializer.save()
+            return Response(PageAPISerializer(serializer.instance).data, status=status.HTTP_201_CREATED)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class PageDetailAPIEndpoint(BaseAPIView):
