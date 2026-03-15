@@ -35,6 +35,13 @@ class PageAPISerializer(BaseSerializer):
         read_only_fields = ["workspace", "owned_by"]
 
 
+class PageAPIDetailSerializer(PageAPISerializer):
+    description_html = serializers.CharField()
+
+    class Meta(PageAPISerializer.Meta):
+        fields = PageAPISerializer.Meta.fields + ["description_html"]
+
+
 class PageAPICreateSerializer(BaseSerializer):
     description_html = serializers.CharField(required=False, allow_blank=True)
 

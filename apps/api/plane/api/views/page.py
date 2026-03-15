@@ -10,7 +10,7 @@ from rest_framework import status
 from rest_framework.response import Response
 
 # Module imports
-from plane.api.serializers import PageAPISerializer, PageAPICreateSerializer
+from plane.api.serializers import PageAPISerializer, PageAPICreateSerializer, PageAPIDetailSerializer
 from plane.app.permissions import ProjectLitePermission, ProjectEntityPermission
 from plane.db.models import Page
 from .base import BaseAPIView
@@ -133,4 +133,4 @@ class PageDetailAPIEndpoint(BaseAPIView):
         except Page.DoesNotExist:
             return Response({"error": "Page not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        return Response(PageAPISerializer(page).data, status=status.HTTP_200_OK)
+        return Response(PageAPIDetailSerializer(page).data, status=status.HTTP_200_OK)

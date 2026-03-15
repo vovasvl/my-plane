@@ -92,3 +92,37 @@ class TestPageListCreateAPIEndpoint:
         assert response.status_code == status.HTTP_409_CONFLICT
         assert "same external id" in response.data["error"]
         assert str(existing_page.id) == response.data["id"]
+
+
+@pytest.mark.contract
+class TestPageDetailAPIEndpoint:
+    """Test page detail API endpoint."""
+
+    def get_page_detail_url(self, workspace_slug, project_id, page_id):
+        """Helper to get page detail endpoint URL."""
+        return f"/api/v1/workspaces/{workspace_slug}/projects/{project_id}/pages/{page_id}/"
+
+    @pytest.mark.django_db
+    def test_get_page_detail_includes_description_html(self, api_key_client, workspace, project, create_user):
+        """Test page detail response includes page content field description_html."""
+        page = Page.objects.create(
+            workspace=workspace,
+            owned_by=create_user,
+            name="Weekly Report",
+            description_html="<h1>Report</h1><p>Body</p>",
+        )
+        ProjectPage.objects.create(
+            workspace=workspace,
+            project=project,
+            page=page,
+            created_by=create_user,
+            updated_by=create_user,
+        )
+
+        url = self.get_page_detail_url(workspace.slug, project.id, page.id)
+        response = api_key_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["id"] == page.id
+        assert "description_html" in response.data
+        assert response.data["description_html"] == "<h1>Report</h1><p>Body</p>"
